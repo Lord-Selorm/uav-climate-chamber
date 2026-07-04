@@ -1,5 +1,7 @@
 # UAV Climate Test Chamber
 
+**Live Demo:** [uav-climate-chamber.vercel.app](https://uav-climate-chamber.vercel.app)
+
 An interactive 3D UAV climate test chamber simulation built with Three.js and Vite.
 
 ## Features
