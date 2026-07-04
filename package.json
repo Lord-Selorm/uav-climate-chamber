@@ -1,0 +1,22 @@
+{
+  "name": "uav-climate-chamber",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "canvas": "^3.2.3",
+    "jsdom": "^29.1.1",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  }
+}

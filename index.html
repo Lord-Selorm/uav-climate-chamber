@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UAV Climate Test Chamber - Control System</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #0a0a1a; font-family: 'Segoe UI', Arial, sans-serif; }
+  canvas { display: block; }
+  #header {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    color: #fff; background: rgba(0,0,0,0.65); padding: 8px 22px; border-radius: 8px;
+    font-size: 12px; pointer-events: none; text-align: center;
+    border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(6px); z-index: 10;
+  }
+  #header h1 { font-size: 15px; font-weight: 600; letter-spacing: 1px; }
+  #header p { opacity: 0.5; font-size: 11px; margin-top: 1px; }
+  #legend {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 16px; background: rgba(0,0,0,0.7); padding: 8px 18px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(6px); z-index: 10;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: #bbb; font-size: 11px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12); }
+  .label-2d { color: #fff; font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 700; text-shadow: 0 2px 10px rgba(0,0,0,0.9); padding: 4px 14px; border-radius: 5px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.08); letter-spacing: 1.5px; }
+  .label-sub { font-size: 10px; font-weight: 400; opacity: 0.6; letter-spacing: 0; display: block; margin-top: 1px; }
+  #panel {
+    position: absolute; top: 70px; right: 16px; width: 240px; z-index: 20;
+    background: rgba(8,8,20,0.88); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.07); border-radius: 10px;
+    padding: 14px 14px 8px; max-height: calc(100vh - 120px); overflow-y: auto;
+    font-size: 12px; color: #ccc;
+  }
+  #panel::-webkit-scrollbar { width: 3px; }
+  #panel::-webkit-scrollbar-track { background: transparent; }
+  #panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+  #fp-toggle.active { color: #00f5d4; border-color: rgba(0,245,212,0.3); }
+  .panel-title { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 1.5px; text-align: center; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px; }
+  .section-card { border-radius: 6px; padding: 8px 10px 10px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.05); }
+  .section-card.hot { background: rgba(255,107,53,0.08); border-left: 2px solid #ff6b35; }
+  .section-card.cold { background: rgba(0,180,216,0.08); border-left: 2px solid #00b4d8; }
+  .section-card.windy { background: rgba(0,245,212,0.06); border-left: 2px solid #00f5d4; }
+  .section-card.rainy { background: rgba(74,111,165,0.08); border-left: 2px solid #4a6fa5; }
+  .section-title { font-weight: 600; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .section-title .badge { font-size: 10px; font-weight: 400; opacity: 0.5; margin-left: auto; }
+  .ctrl-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .ctrl-row label { flex: 1; font-size: 10px; opacity: 0.7; white-space: nowrap; }
+  .ctrl-row input[type="range"] { flex: 2; height: 3px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.12); border-radius: 2px; outline: none; cursor: pointer; }
+  .ctrl-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: none; cursor: pointer; }
+  .ctrl-row input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: none; cursor: pointer; }
+  .ctrl-value { font-size: 10px; font-weight: 600; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+  .hot .ctrl-value { color: #ff6b35; }
+  .cold .ctrl-value { color: #00b4d8; }
+  .windy .ctrl-value { color: #00f5d4; }
+  .rainy .ctrl-value { color: #6b8cbd; }
+  .hot input[type="range"]::-webkit-slider-thumb { background: #ff6b35; }
+  .cold input[type="range"]::-webkit-slider-thumb { background: #00b4d8; }
+  .windy input[type="range"]::-webkit-slider-thumb { background: #00f5d4; }
+  .rainy input[type="range"]::-webkit-slider-thumb { background: #4a6fa5; }
+  .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.05); }
+  .sensor-item { text-align: center; background: rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; }
+  .sensor-item .val { font-size: 13px; font-weight: 700; }
+  .sensor-item .lbl { font-size: 8px; opacity: 0.4; text-transform: uppercase; letter-spacing: 0.5px; }
+  .drone-cmds { display: flex; gap: 3px; margin-top: 5px; }
+  .drone-cmds button {
+    flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    color: #888; padding: 3px 0; border-radius: 3px; cursor: pointer;
+    font-size: 8px; font-family: inherit; transition: all 0.2s;
+  }
+  .drone-cmds button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .drone-cmds button:active { transform: scale(0.95); }
+  .drone-cmds button.active-cmd { background: rgba(0,245,212,0.15); color: #00f5d4; border-color: rgba(0,245,212,0.2); }
+  #test-bar {
+    position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(0,0,0,0.7); padding: 6px 14px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(6px); z-index: 15;
+    flex-wrap: wrap; justify-content: center;
+  }
+  #test-bar select {
+    background: rgba(255,255,255,0.08); color: #ccc; border: 1px solid rgba(255,255,255,0.1);
+    padding: 4px 10px; border-radius: 4px; font-size: 11px; font-family: inherit;
+    outline: none; cursor: pointer;
+  }
+  #test-bar select option { background: #111; color: #ccc; }
+  #test-btn {
+    background: rgba(0,245,212,0.15); color: #00f5d4; border: 1px solid rgba(0,245,212,0.2);
+    padding: 4px 14px; border-radius: 4px; font-size: 11px; font-family: inherit;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  #test-btn:hover { background: rgba(0,245,212,0.25); }
+  #test-btn.running { background: rgba(255,68,68,0.15); color: #ff4444; border-color: rgba(255,68,68,0.2); }
+  #test-progress { width: 80px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+  #test-progress-bar { height: 100%; width: 0%; background: #00f5d4; border-radius: 2px; transition: width 0.1s; }
+  #test-label { font-size: 10px; color: #888; min-width: 80px; text-align: center; }
+  #spec-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 100; display: none; justify-content: center; align-items: center;
+    backdrop-filter: blur(4px);
+  }
+  #spec-overlay.open { display: flex; }
+  #spec-sheet {
+    background: rgba(10,10,25,0.95); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 24px 28px; max-width: 580px; width: 90%;
+    max-height: 80vh; overflow-y: auto; color: #ccc; font-size: 13px;
+    backdrop-filter: blur(12px);
+  }
+  #spec-sheet::-webkit-scrollbar { width: 4px; }
+  #spec-sheet::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .spec-title { font-size: 18px; font-weight: 700; color: #fff; text-align: center; letter-spacing: 1px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 16px; }
+  .spec-block { margin-bottom: 14px; }
+  .spec-block h3 { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .spec-block h3 .tag { font-size: 9px; font-weight: 400; opacity: 0.4; }
+  .spec-table { width: 100%; border-collapse: collapse; }
+  .spec-table td { padding: 3px 8px; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .spec-table td:first-child { opacity: 0.5; width: 40%; }
+  .spec-table td:last-child { font-weight: 500; color: #ddd; }
+  #spec-close { display: block; margin: 16px auto 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #aaa; padding: 6px 24px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; transition: all 0.2s; }
+  #spec-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  #welcome-toast {
+    display: none; position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+    padding: 14px 22px; z-index: 200; max-width: 480px; width: 90%;
+    color: #ccc; font-size: 12px; text-align: center;
+    animation: toastIn 0.4s ease-out;
+  }
+  #welcome-toast h3 { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
+  #welcome-toast p { margin: 4px 0; opacity: 0.8; }
+  #welcome-toast .keys { display: inline-block; background: rgba(255,255,255,0.08); padding: 0 6px; border-radius: 3px; font-size: 10px; color: #fff; font-weight: 600; }
+  #welcome-toast .dismiss { display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.1); border: none; color: #ddd; padding: 4px 16px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: inherit; }
+  #welcome-toast .dismiss:hover { background: rgba(255,255,255,0.18); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+  @keyframes pulseGlow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.4); } }
+  .slider-pulse { animation: pulseGlow 1.5s ease-in-out 3; }
+  #loading-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0a0a1a; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Segoe UI', Arial, sans-serif; color: #fff;
+    transition: opacity 0.6s ease;
+  }
+  #loading-screen.hidden { opacity: 0; pointer-events: none; }
+  #loading-screen .spinner {
+    width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.06);
+    border-top-color: #00f5d4; border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-screen p { font-size: 13px; letter-spacing: 2px; opacity: 0.6; font-weight: 300; }
+  #loading-screen .bar {
+    width: 160px; height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px;
+    margin-top: 12px; overflow: hidden;
+  }
+  #loading-screen .bar-inner {
+    width: 0%; height: 100%; background: #00f5d4; border-radius: 2px;
+    transition: width 0.3s;
+  }
+  #thermal-overlay { position: fixed; inset: 0; z-index: 3; pointer-events: none; display: none; mix-blend-mode: overlay; background: radial-gradient(ellipse at center, rgba(255,40,0,0.12) 0%, rgba(0,20,80,0.35) 60%, rgba(0,0,0,0.5) 100%); }
+  #thermal-overlay.active { display: block; }
+  #export-dialog { position: fixed; inset: 0; z-index: 110; display: none; justify-content: center; align-items: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+  #export-dialog.open { display: flex; }
+  #export-box { background: rgba(10,10,25,0.95); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px 24px; max-width: 420px; width: 90%; color: #ccc; font-size: 13px; backdrop-filter: blur(12px); }
+  #export-box h3 { color: #fff; font-size: 15px; margin-bottom: 12px; text-align: center; }
+  #export-box pre { background: rgba(0,0,0,0.4); border-radius: 6px; padding: 10px; font-size: 10px; max-height: 160px; overflow-y: auto; font-family: 'Consolas','Courier New',monospace; line-height: 1.6; white-space: pre-wrap; }
+  #export-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: center; }
+  #export-actions button { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #aaa; padding: 5px 18px; border-radius: 5px; cursor: pointer; font-size: 11px; font-family: inherit; transition: all 0.2s; }
+  #export-actions button:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  #export-actions button.primary { background: rgba(0,245,212,0.15); color: #00f5d4; border-color: rgba(0,245,212,0.2); }
+  .eq-highlight { outline: 2px solid #00f5d4; outline-offset: 2px; filter: brightness(1.3); }
+  #eq-tooltip { position: absolute; z-index: 30; background: rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 11px; pointer-events: none; display: none; backdrop-filter: blur(6px); max-width: 200px; }
+  #eq-tooltip .tt-name { font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+  #eq-tooltip .tt-desc { opacity: 0.6; font-size: 10px; }
+  #follow-indicator { position: absolute; bottom: 56px; right: 20px; z-index: 16; font-size: 10px; color: #00f5d4; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 5px; border: 1px solid rgba(0,245,212,0.2); display: none; backdrop-filter: blur(4px); }
+  .tele-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #fff; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; padding: 4px 10px; backdrop-filter: blur(4px); text-align: center; line-height: 1.5; white-space: nowrap; pointer-events: none; user-select: none; }
+  .tele-label .t-name { font-size: 9px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.8; }
+  .tele-label .t-row { display: flex; gap: 10px; justify-content: center; font-variant-numeric: tabular-nums; }
+  .tele-label .t-item { display: flex; align-items: center; gap: 3px; }
+  .tele-label .t-icon { opacity: 0.5; font-size: 9px; }
+  .tele-label .t-val { font-weight: 600; font-size: 10px; }
+  .tele-label .t-status { font-size: 8px; opacity: 0.6; letter-spacing: 0.3px; margin-top: 1px; }
+  @media (max-width: 900px) {
+    #panel { width: 200px; right: 8px; top: 60px; font-size: 11px; max-height: calc(100vh - 100px); }
+    #panel .ctrl-row input[type="range"] { flex: 1.5; }
+    #panel .ctrl-value { min-width: 28px; font-size: 9px; }
+    #panel .sensor-item .val { font-size: 11px; }
+    #panel .section-card { padding: 6px 8px 8px; }
+    #panel .section-title { font-size: 11px; }
+    #header { font-size: 10px; padding: 6px 14px; max-width: 80%; }
+    #header h1 { font-size: 12px; }
+    #test-bar { gap: 4px; padding: 4px 8px; max-width: 95%; }
+    #legend { gap: 10px; padding: 6px 12px; }
+    .legend-item { font-size: 9px; }
+    #spec-sheet { padding: 16px; font-size: 11px; }
+    .spec-title { font-size: 15px; }
+    #welcome-toast { bottom: 80px; font-size: 11px; padding: 12px 16px; }
+  }
+  @media (max-width: 600px) {
+    #panel { width: 48%; right: 4px; top: 50px; padding: 6px 5px 5px; font-size: 10px; max-height: calc(100vh - 90px); }
+    #panel .ctrl-row { gap: 2px; flex-wrap: wrap; }
+    #panel .ctrl-row label { font-size: 7px; flex: 0 0 auto; min-width: 45px; }
+    #panel .ctrl-row input[type="range"] { flex: 1; height: 2px; }
+    #panel .ctrl-value { min-width: 24px; font-size: 8px; }
+    #panel .sensor-grid { grid-template-columns: 1fr 1fr; gap: 2px; }
+    #panel .sensor-item .val { font-size: 10px; }
+    #panel .sensor-item .lbl { font-size: 7px; }
+    #panel .drone-cmds button { font-size: 7px; padding: 2px 0; }
+    #panel .section-card { padding: 4px 4px 6px; }
+    #panel .section-title { font-size: 10px; }
+    #header { font-size: 7px; padding: 3px 8px; max-width: 90%; top: 8px; }
+    #header h1 { font-size: 9px; }
+    #header p { font-size: 8px; }
+    #test-bar { bottom: 42px; gap: 3px; padding: 3px 6px; max-width: 98%; font-size: 9px; }
+    #test-bar select, #test-bar button { font-size: 8px; padding: 2px 5px; }
+    #legend { bottom: 8px; gap: 4px; padding: 3px 6px; }
+    .legend-item { font-size: 7px; gap: 3px; }
+    .legend-dot { width: 6px; height: 6px; }
+    #welcome-toast { bottom: 60px; font-size: 10px; padding: 10px 14px; max-width: 92%; }
+    #welcome-toast h3 { font-size: 12px; }
+    #help-overlay > div { padding: 16px 14px; font-size: 11px; }
+    #spec-sheet { padding: 12px; font-size: 10px; }
+    .spec-title { font-size: 13px; }
+    #export-box { padding: 14px 16px; }
+    #loading-screen p { font-size: 11px; }
+    #loading-screen .spinner { width: 28px; height: 28px; }
+    #follow-indicator { font-size: 8px; padding: 2px 6px; bottom: 42px; right: 8px; }
+    .tele-label { font-size: 8px; padding: 2px 6px; }
+    .tele-label .t-row { gap: 4px; }
+    #eq-tooltip { font-size: 9px; padding: 4px 8px; max-width: 140px; }
+    #fp-toggle, #siren-btn, #isolate-btn, #thermal-btn, #follow-btn, #formation-btn, #mute-btn, #pip-btn { padding: 2px 4px; font-size: 8px; }
+  }
+  @media (max-width: 400px) {
+    #panel { width: 44%; right: 2px; top: 44px; padding: 4px 3px 4px; }
+    #panel .panel-title { font-size: 10px; padding-bottom: 6px; }
+    #panel .ctrl-row label { font-size: 6px; min-width: 36px; }
+    #panel .ctrl-value { min-width: 20px; font-size: 7px; }
+    #header h1 { font-size: 8px; }
+    #test-bar { gap: 2px; padding: 2px 4px; }
+    #test-bar select, #test-bar button { font-size: 7px; padding: 1px 3px; }
+    #legend { display: none; }
+  }
+  @media (orientation: portrait) and (max-width: 600px) {
+    #panel { width: calc(100% - 8px); right: 4px; top: auto; bottom: 48px; max-height: 45vh; }
+    #panel .ctrl-row { flex-wrap: nowrap; }
+  }
+</style>
+</head>
+<body>
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <p>INITIALIZING CHAMBER</p>
+  <div class="bar"><div class="bar-inner" id="loading-bar"></div></div>
+</div>
+<div id="header">
+  <h1>UAV CLIMATE TEST CHAMBER</h1>
+  <p>Drag to orbit · Scroll to zoom · Adjust sliders to control each climate zone</p>
+</div>
+<div id="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div> Hot</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#00b4d8"></div> Cold</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#00f5d4"></div> Windy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4a6fa5"></div> Rainy</div>
+</div>
+<div id="panel">
+  <div class="panel-title">⚙ CLIMATE CONTROL</div>
+  <div class="section-card hot" data-idx="0">
+    <div class="section-title">🔥 Hot Zone <span class="badge">Heater</span></div>
+    <div class="ctrl-row">
+      <label>Temperature</label>
+      <input type="range" min="25" max="85" value="65" class="slider">
+      <span class="ctrl-value" data-display="0-temp">65°C</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Heat Glow</label>
+      <input type="range" min="0" max="100" value="75" class="slider">
+      <span class="ctrl-value" data-display="0-glow">75%</span>
+    </div>
+    <div class="sensor-grid">
+      <div class="sensor-item"><div class="val hot" data-sensor="0-temp">65°C</div><div class="lbl">Temp</div></div>
+      <div class="sensor-item"><div class="val hot" data-sensor="0-humidity">32%</div><div class="lbl">Humidity</div></div>
+    </div>
+    <div class="drone-cmds">
+      <button data-cmd="0-up">⬆ Up</button>
+      <button data-cmd="0-down">⬇ Down</button>
+      <button data-cmd="0-reset">↺ Reset</button>
+      <button data-cmd="0-charge">🔋 Charge</button>
+    </div>
+    <div class="eq-health" data-health="0" style="margin-top:4px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="width:0%;height:100%;background:#ff6b35;border-radius:2px;transition:width 0.3s"></div></div>
+  </div>
+  <div class="section-card cold" data-idx="1">
+    <div class="section-title">❄ Cold Zone <span class="badge">AC Unit</span></div>
+    <div class="ctrl-row">
+      <label>Temperature</label>
+      <input type="range" min="-20" max="10" value="-5" class="slider">
+      <span class="ctrl-value" data-display="1-temp">-5°C</span>
+    </div>
+    <div class="ctrl-row">
+      <label>Snowfall</label>
+      <input type="range" min="0" max="100" value="60" class="slider">
+      <span class="ctrl-value" data-display="1-snow">60%</span>
+    </div>
+    <div class="sensor-grid">
+      <div class="sensor-item"><div class="val cold" data-sensor="1-temp">-5°C</div><div class="lbl">Temp</div></div>
+      <div class="sensor-item"><div class="val cold" data-sensor="1-humidity">18%</div><div class="lbl">Humidity</div></div>
+    </div>
+    <div class="drone-cmds">
+      <button data-cmd="1-up">⬆ Up</button>
+      <button data-cmd="1-down">⬇ Down</button>
+      <button data-cmd="1-reset">↺ Reset</button>
+      <button data-cmd="1-charge">🔋 Charge</button>
+    </div>
+    <div class="eq-health" data-health="1" style="margin-top:4px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="width:0%;height:100%;background:#00b4d8;border-radius:2px;transition:width 0.3s"></div></div>
+  </div>
+  <div class="section-card windy" data-idx="2">
+    <div class="section-title">🌬 Windy Zone <span class="badge">Fan</span></div>
+    <div class="ctrl-row">
+      <label>Wind Speed</label>
+      <input type="range" min="0" max="60" value="30" class="slider">
+      <span class="ctrl-value" data-display="2-wind">30km/h</span>
+    </div>
+    <div class="sensor-grid">
+      <div class="sensor-item"><div class="val windy" data-sensor="2-wind">30km/h</div><div class="lbl">Wind</div></div>
+      <div class="sensor-item"><div class="val windy" data-sensor="2-gust">44km/h</div><div class="lbl">Gust</div></div>
+    </div>
+    <div class="drone-cmds">
+      <button data-cmd="2-up">⬆ Up</button>
+      <button data-cmd="2-down">⬇ Down</button>
+      <button data-cmd="2-reset">↺ Reset</button>
+      <button data-cmd="2-charge">🔋 Charge</button>
+    </div>
+    <div class="eq-health" data-health="2" style="margin-top:4px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="width:0%;height:100%;background:#00f5d4;border-radius:2px;transition:width 0.3s"></div></div>
+  </div>
+  <div class="section-card rainy" data-idx="3">
+    <div class="section-title">🌧 Rainy Zone <span class="badge">Sprinklers</span></div>
+    <div class="ctrl-row">
+      <label>Rain Intensity</label>
+      <input type="range" min="0" max="100" value="50" class="slider">
+      <span class="ctrl-value" data-display="3-rain">50%</span>
+    </div>
+    <div class="sensor-grid">
+      <div class="sensor-item"><div class="val rainy" data-sensor="3-rain">50%</div><div class="lbl">Precip</div></div>
+      <div class="sensor-item"><div class="val rainy" data-sensor="3-humidity">96%</div><div class="lbl">Humidity</div></div>
+    </div>
+    <div class="drone-cmds">
+      <button data-cmd="3-up">⬆ Up</button>
+      <button data-cmd="3-down">⬇ Down</button>
+      <button data-cmd="3-reset">↺ Reset</button>
+      <button data-cmd="3-charge">🔋 Charge</button>
+    </div>
+    <div class="eq-health" data-health="3" style="margin-top:4px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="width:0%;height:100%;background:#4a6fa5;border-radius:2px;transition:width 0.3s"></div></div>
+  </div>
+  <div style="padding:6px 0 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:10px;opacity:0.5;letter-spacing:0.5px">SENSOR HISTORY</span>
+      <span style="font-size:9px;opacity:0.3" id="chart-status">60s</span>
+    </div>
+    <canvas id="chart" width="424" height="80" style="width:100%;height:40px;border-radius:4px;background:rgba(0,0,0,0.3);display:block"></canvas>
+    <div style="display:flex;gap:10px;margin-top:3px;font-size:8px;opacity:0.4;justify-content:center">
+      <span style="color:#ff6b35">● Hot</span>
+      <span style="color:#00b4d8">● Cold</span>
+      <span style="color:#00f5d4">● Wind</span>
+      <span style="color:#4a6fa5">● Rain</span>
+    </div>
+  </div>
+  <div style="text-align:center;padding:2px 0 0;opacity:0.2;font-size:8px;letter-spacing:0.5px">Sliders update the 3D scene in real-time</div>
+</div>
+<div id="test-bar">
+  <select id="test-select">
+    <option value="">— Select Test —</option>
+    <option value="heat">🔥 Heat Stress Test</option>
+    <option value="cold">❄️ Cold Start Test</option>
+    <option value="wind">🌬 Crosswind Landing</option>
+    <option value="rain">🌧 Water Resistance</option>
+    <option value="sweep">🌀 Full Climate Sweep</option>
+  </select>
+  <button id="test-btn">▶ Run</button>
+  <div id="test-progress"><div id="test-progress-bar"></div></div>
+  <span id="test-label">Ready</span>
+  <span style="width:1px;height:16px;background:rgba(255,255,255,0.08)"></span>
+  <button id="reset-view-btn" title="Reset camera view (0)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">⟲ Reset View</button>
+  <select id="cam-select" style="background:rgba(255,255,255,0.06);color:#888;border:1px solid rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px;font-size:10px;font-family:inherit;outline:none;cursor:pointer">
+    <option value="">🎥 Camera</option>
+    <option value="overview">Overview</option>
+    <option value="hot">Hot Zone</option>
+    <option value="cold">Cold Zone</option>
+    <option value="windy">Windy Zone</option>
+    <option value="rainy">Rainy Zone</option>
+    <option value="top">Top Down</option>
+    <option value="orbit">Orbit</option>
+  </select>
+  <button id="thermal-btn" title="Toggle thermal overlay (T)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">🌡 Thermal</button>
+  <button id="follow-btn" title="Cycle follow-cam drone (P)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">◎ Follow</button>
+  <button id="formation-btn" title="Toggle formation flying (F)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">⋮ Form</button>
+  <button id="mute-btn" title="Toggle sound (M)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">🔊 Sound</button>
+  <button id="pip-btn" title="Toggle drone PIP camera" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">🎥 PIP</button>
+  <select id="preset-select" style="background:rgba(255,255,255,0.06);color:#888;border:1px solid rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-size:10px;font-family:inherit;outline:none;cursor:pointer">
+    <option value="">Presets</option>
+    <option value="desert">🏜 Desert</option>
+    <option value="arctic">❄️ Arctic</option>
+    <option value="monsoon">🌧 Monsoon</option>
+    <option value="template">📋 Template A</option>
+  </select>
+  <button id="spec-btn" title="View equipment specifications" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">📋 Specs</button>
+  <button id="export-btn" title="Export data log (CSV)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">📤 Export</button>
+  <button id="fp-toggle" title="Toggle flight path display" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit;letter-spacing:0.3px">◇ Path</button>
+  <span id="pause-indicator" style="color:#ff4444;font-size:10px;font-weight:700;display:none">⏸ PAUSED</span>
+  <button id="pause-btn" title="Pause / resume (Space)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit">⏸</button>
+  <button id="siren-btn" title="Toggle emergency siren" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit">🚨 Siren</button>
+  <button id="isolate-btn" title="Cycle zone isolation" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit">🔲 Isolate</button>
+  <button id="screenshot-btn" title="Capture screenshot (PNG)" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit">📸 Snap</button>
+  <button id="help-btn" title="Show keyboard shortcuts (? )" style="background:none;border:1px solid rgba(255,255,255,0.08);color:#888;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-family:inherit">❓ Help</button>
+</div>
+<div id="thermal-overlay"></div>
+<div id="eq-tooltip"><div class="tt-name"></div><div class="tt-desc"></div></div>
+<div id="follow-indicator">● FOLLOW UAV-01</div>
+<div id="spec-overlay">
+  <div id="spec-sheet">
+    <div class="spec-title">🏗️ TECHNICAL SPECIFICATIONS</div>
+    <div class="spec-block">
+      <h3>📐 Chamber Structure <span class="tag">STEEL CONTAINER</span></h3>
+      <table class="spec-table">
+        <tr><td>Material</td><td>A36 Steel — 3.0 mm gauge</td></tr>
+        <tr><td>Overall Dimensions</td><td>21.0 m (W) × 8.0 m (D) × 5.0 m (H)</td></tr>
+        <tr><td>Section Count</td><td>4 climate zones</td></tr>
+        <tr><td>Section Dimensions</td><td>5.0 m (W) × 8.0 m (D) × 5.0 m (H) each</td></tr>
+        <tr><td>Divider Material</td><td>Steel sheet — 3.0 mm gauge, thermally insulated</td></tr>
+        <tr><td>Front Wall</td><td>Tempered glass — 12 mm, thermal-rated</td></tr>
+        <tr><td>Frame</td><td>Steel I-beam — 100 mm × 50 mm</td></tr>
+        <tr><td>Floor Coating</td><td>Anti-static epoxy — 3 mm</td></tr>
+        <tr><td>Insulation</td><td>Polyurethane foam — 80 mm, R-value 3.5</td></tr>
+      </table>
+    </div>
+    <div class="spec-block">
+      <h3>🔥 Heating System <span class="tag">HOT ZONE</span></h3>
+      <table class="spec-table">
+        <tr><td>Type</td><td>Industrial electric resistance heater</td></tr>
+        <tr><td>Model</td><td>Chromalox CXN-480-60</td></tr>
+        <tr><td>Power Rating</td><td>60 kW</td></tr>
+        <tr><td>Temperature Range</td><td>25°C – 85°C</td></tr>
+        <tr><td>Heating Element</td><td>NiCr alloy coils with Incoloy sheath</td></tr>
+        <tr><td>Airflow</td><td>Integrated centrifugal fan — 1200 CFM</td></tr>
+        <tr><td>Safety</td><td>Thermal cutoff at 95°C, overcurrent protection</td></tr>
+      </table>
+    </div>
+    <div class="spec-block">
+      <h3>❄️ Cooling System <span class="tag">COLD ZONE</span></h3>
+      <table class="spec-table">
+        <tr><td>Type</td><td>Vapor-compression refrigeration</td></tr>
+        <tr><td>Model</td><td>Copeland ZR61KCE-TFD</td></tr>
+        <tr><td>Cooling Capacity</td><td>52,000 BTU/h (15.2 kW)</td></tr>
+        <tr><td>Temperature Range</td><td>-20°C – 10°C</td></tr>
+        <tr><td>Refrigerant</td><td>R-404A, 3.2 kg charge</td></tr>
+        <tr><td>Evaporator</td><td>Fin-and-tube with defrost cycle</td></tr>
+        <tr><td>Condenser</td><td>Air-cooled, remote mount</td></tr>
+      </table>
+    </div>
+    <div class="spec-block">
+      <h3>🌬 Ventilation System <span class="tag">WINDY ZONE</span></h3>
+      <table class="spec-table">
+        <tr><td>Type</td><td>High-velocity industrial axial fan</td></tr>
+        <tr><td>Model</td><td>Howden Buffalo AP-24-150</td></tr>
+        <tr><td>Fan Diameter</td><td>610 mm (24")</td></tr>
+        <tr><td>Max Airflow</td><td>18,000 CFM</td></tr>
+        <tr><td>Wind Speed Range</td><td>0 – 60 km/h (0 – 16.7 m/s)</td></tr>
+        <tr><td>Motor</td><td>15 HP, 3-phase, 1800 RPM</td></tr>
+        <tr><td>Blade Material</td><td>Aluminum alloy, aerofoil profile</td></tr>
+        <tr><td>VFD Control</td><td>0–60 Hz, closed-loop PID</td></tr>
+      </table>
+    </div>
+    <div class="spec-block">
+      <h3>🌧 Spray System <span class="tag">RAINY ZONE</span></h3>
+      <table class="spec-table">
+        <tr><td>Type</td><td>Overhead sprinkler array</td></tr>
+        <tr><td>Nozzles</td><td>12 × full-cone spray (Brass, 60°)</td></tr>
+        <tr><td>Flow Rate</td><td>0.5 – 8.0 L/min per nozzle</td></tr>
+        <tr><td>Operating Pressure</td><td>2 – 6 bar</td></tr>
+        <tr><td>Droplet Size</td><td>0.2 – 1.5 mm (pressure-regulated)</td></tr>
+        <tr><td>Water Supply</td><td>Closed-loop with filtration, 200 L tank</td></tr>
+        <tr><td>Coverage</td><td>Uniform over full 5 m × 8 m zone</td></tr>
+      </table>
+    </div>
+    <div class="spec-block">
+      <h3>⚡ Control & Monitoring</h3>
+      <table class="spec-table">
+        <tr><td>Controller</td><td>Siemens PLC S7-1200</td></tr>
+        <tr><td>HMI</td><td>7" touchscreen panel</td></tr>
+        <tr><td>Sensors</td><td>Temp, humidity, wind speed, precipitation × 4 zones</td></tr>
+        <tr><td>Data Logging</td><td>1 Hz to SD card + Cloud (MQTT)</td></tr>
+        <tr><td>Power Supply</td><td>480V 3-phase, 200 A main</td></tr>
+      </table>
+    </div>
+    <button id="spec-close">Close</button>
+  </div>
+</div>
+<div id="export-dialog">
+  <div id="export-box">
+    <h3>📊 Test Report</h3>
+    <pre id="export-content">No data yet.</pre>
+    <div id="export-actions">
+      <button id="export-close">Close</button>
+      <button id="export-download" class="primary">⬇ Download CSV</button>
+    </div>
+  </div>
+</div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="src/main.js"></script>
+<canvas id="pip-canvas" style="position:fixed;bottom:12px;right:12px;width:240px;height:160px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);display:none;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.5);cursor:pointer"></canvas>
+<div id="welcome-toast">
+  <h3>🛸 UAV Climate Test Chamber</h3>
+  <p>🖱 <span class="keys">Drag</span> to orbit · <span class="keys">Scroll</span> to zoom</p>
+  <p>🔧 Click equipment in 3D to toggle ON/OFF · Adjust sliders to control each zone</p>
+  <p>⌨ Press <span class="keys">?</span> for keyboard shortcuts</p>
+  <button class="dismiss" id="toast-dismiss">Got it</button>
+</div>
+<div id="help-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:999;align-items:center;justify-content:center;color:#ddd;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;">
+  <div style="background:rgba(20,20,40,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px 30px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+    <h2 style="color:#fff;font-size:16px;font-weight:700;margin-bottom:14px;letter-spacing:1px;">⌨ Keyboard Shortcuts</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;">
+      <span style="color:#888;">D</span><span>Toggle sliding doors</span>
+      <span style="color:#888;">T</span><span>Thermal overlay mode</span>
+      <span style="color:#888;">M</span><span>Toggle mute audio</span>
+      <span style="color:#888;">P</span><span>Follow-cam (track selected drone)</span>
+      <span style="color:#888;">F</span><span>Formation flying mode</span>
+      <span style="color:#888;">0</span><span>Reset to orbit camera</span>
+      <span style="color:#888;">1-4</span><span>Camera zone presets</span>
+      <span style="color:#888;">↑↓</span><span>Drone altitude up/down</span>
+      <span style="color:#888;">R</span><span>Reset drone altitude</span>
+      <span style="color:#888;">Space</span><span>Pause / resume simulation</span>
+      <span style="color:#888;">+ / -</span><span>Speed up / slow down time</span>
+      <span style="color:#888;">?</span><span>Toggle this help</span>
+      <span style="color:#888;">Esc</span><span>Close help / deselect</span>
+    </div>
+    <p style="color:#555;font-size:11px;margin-top:14px;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">Click on equipment in 3D to toggle on/off. Click PIP camera to cycle drone view.</p>
+  </div>
+</div>
+</body>
+</html>
