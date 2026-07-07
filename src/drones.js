@@ -77,12 +77,14 @@ function createSurveyorQuad(accentColor) {
   const antTip = new THREE.Mesh(new THREE.SphereGeometry(0.006, 4, 4), new THREE.MeshStandardMaterial({ color: 0xff4444 }));
   antTip.position.set(0, 0.31, -0.15);
   g.add(antTip);
+  const leds = [];
   [-0.2, 0.2].forEach(x => {
     const led = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 0.04), lm);
     led.position.set(x, 0.2, 0.2);
     g.add(led);
+    leds.push(led);
   });
-  return { group: g, props, type: 'quad' };
+  return { group: g, props, leds, type: 'quad' };
 }
 
 function createFreightHex(accentColor) {
@@ -137,7 +139,7 @@ function createFreightHex(accentColor) {
   const led = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.05), lm);
   led.position.set(0, 0.3, 0);
   g.add(led);
-  return { group: g, props, type: 'hex' };
+  return { group: g, props, leds: [led], type: 'hex' };
 }
 
 function createRacerX(accentColor) {
@@ -178,13 +180,16 @@ function createRacerX(accentColor) {
     skid.position.set(x, -0.05, 0.25);
     g.add(skid);
   });
+  const leds = [];
   const led = makeBox(0.06, 0.015, 0.01, lm);
   led.position.set(0, 0.06, -0.25);
   g.add(led);
+  leds.push(led);
   const fLed = makeBox(0.03, 0.015, 0.01, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 }));
   fLed.position.set(0, 0.06, 0.3);
   g.add(fLed);
-  return { group: g, props, type: 'race' };
+  leds.push(fLed);
+  return { group: g, props, leds, type: 'race' };
 }
 
 export function buildDrones(scene) {
@@ -218,9 +223,12 @@ export function buildDrones(scene) {
 
   centers.forEach((cx, i) => {
     const type = droneTypes[i];
-    const { group, props } = type.fn(type.color);
+    const { group, props, leds } = type.fn(type.color);
     group.position.set(cx, 3.0, 0);
     scene.add(group);
+    const blinkLight = new THREE.PointLight(type.color, 0, 1.5);
+    blinkLight.position.set(0, 0.3, 0);
+    group.add(blinkLight);
     const sparks = makeDroneFX(30, 0xffcc44, 0.04, 0.4,
       (v, stress) => { v.x = (Math.random() - 0.5) * 3 * stress; v.y = 0.5 + Math.random() * 2 * stress; v.z = (Math.random() - 0.5) * 3 * stress; },
       THREE.AdditiveBlending);
@@ -229,9 +237,10 @@ export function buildDrones(scene) {
       THREE.NormalBlending);
     const driftPhase = Math.random() * 6.28;
     drones.push({
-      group, props, phase: i * Math.PI / 2, baseY: 3.0, baseX: cx,
+      group, props, leds, blinkLight, phase: i * Math.PI / 2, baseY: 3.0, baseX: cx,
       windOffset: 0, windVel: 0, wobblePhase: Math.random() * 6.28,
-      targetX: cx, sparks, smoke, type: type.label, driftPhase
+      targetX: cx, sparks, smoke, type: type.label, driftPhase,
+      blinkPhase: i * Math.PI / 3
     });
   });
 

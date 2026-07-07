@@ -6,7 +6,7 @@ import { makeBox, steel, darkSteel, frameMat } from './utils.js';
 import { buildChamber, buildVents } from './chamber.js';
 import { buildEnvironment } from './environment.js';
 import { buildLights } from './lights.js';
-import { buildEquipment } from './equipment.js';
+import { buildEquipment, buildCameras } from './equipment.js';
 import { buildDrones } from './drones.js';
 import { buildParticles, particleSpeedMult, particleOpacity } from './particles.js';
 import { buildInstruments } from './instruments.js';
@@ -65,6 +65,7 @@ const { equipFX: eqFX, failFX: flFX } = buildEquipment(scene);
 eqFX.forEach(fx => equipFX.push(fx));
 flFX.forEach(fx => failFX.push(fx));
 buildDrones(scene);
+buildCameras(scene);
 buildParticles(scene);
 buildInstruments(scene);
 buildLabels(scene);
@@ -896,6 +897,11 @@ function animate() {
     d.group.rotation.y = t * 0.3 + i * Math.PI / 2 + Math.sin(t * 0.2 + d.phase) * 0.05;
     const propMul = d.type === 'Freight Hex' ? 0.8 : d.type === 'Racer X' ? 1.4 : 1.0;
     d.props.forEach((p) => { p.rotation.y += dt * 30 * propMul; });
+
+    // Blinking lights
+    const blink = Math.sin(t * 6 + d.blinkPhase) > 0.3;
+    d.leds.forEach(led => { led.material.emissiveIntensity = blink ? 1.5 : 0; });
+    d.blinkLight.intensity = blink ? 0.8 : 0;
 
     // Telemetry
     const battEl = document.querySelector(`[data-tel="batt-${i}"]`);
