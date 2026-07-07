@@ -236,45 +236,50 @@ export function buildEquipment(scene) {
 }
 
 export function buildCameras(scene) {
-  const mountMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7, roughness: 0.3 });
-  const domeMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.3, roughness: 0.6 });
-  const lensMat = new THREE.MeshStandardMaterial({ color: 0x111122, emissive: 0x334466, emissiveIntensity: 0.15 });
-  const ringMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.5, roughness: 0.4 });
-  const redMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.3 });
+  const mountMat = new THREE.MeshStandardMaterial({ color: 0x666677, metalness: 0.8, roughness: 0.2 });
+  const armMat = new THREE.MeshStandardMaterial({ color: 0x555566, metalness: 0.7, roughness: 0.3 });
+  const domeMat = new THREE.MeshStandardMaterial({ color: 0x222233, metalness: 0.3, roughness: 0.6 });
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.5, roughness: 0.4 });
+  const lensMat = new THREE.MeshStandardMaterial({ color: 0x111122, emissive: 0x334466, emissiveIntensity: 0.2 });
+  const recLedOn = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 });
+  const recLedOff = new THREE.MeshStandardMaterial({ color: 0x330000 });
 
   function makeCam() {
     const g = new THREE.Group();
-    const mount = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.08), mountMat);
-    mount.position.set(0, 0, -0.1);
+    const mount = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.15), mountMat);
+    mount.position.set(0, 0.03, -0.12);
     g.add(mount);
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.12, 8), mountMat);
-    arm.rotation.x = Math.PI / 2;
-    arm.position.set(0, 0, 0);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.2, 8), armMat);
+    arm.rotation.x = Math.PI / 2 + 0.2;
+    arm.position.set(0, 0.1, 0.02);
     g.add(arm);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
-    dome.position.set(0, 0, 0.07);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
+    dome.position.set(0, 0.18, 0.08);
     g.add(dome);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 14), ringMat);
-    ring.position.set(0, 0, 0.12);
-    ring.rotation.x = Math.PI / 2;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.018, 8, 16), ringMat);
+    ring.position.set(0, 0.18, 0.18);
+    ring.rotation.x = Math.PI / 2 + 0.2;
     g.add(ring);
-    const lens = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), lensMat);
-    lens.position.set(0, 0, 0.15);
+    const lens = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), lensMat);
+    lens.position.set(0, 0.18, 0.22);
     g.add(lens);
-    const recLed = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 6), redMat);
-    recLed.position.set(0.06, 0.03, 0.1);
+    const recLed = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), recLedOn);
+    recLed.position.set(0.1, 0.24, 0.14);
     g.add(recLed);
     return g;
   }
 
   centers.forEach((cx, i) => {
-    const cam1 = makeCam();
-    cam1.position.set(cx - 2.0, HEIGHT - 0.8, -DEPTH / 2 + 0.3);
-    cam1.rotation.y = i % 2 === 0 ? 0.3 : -0.3;
-    scene.add(cam1);
-    const cam2 = makeCam();
-    cam2.position.set(cx + 2.0, HEIGHT - 0.8, -DEPTH / 2 + 0.3);
-    cam2.rotation.y = i % 2 === 0 ? -0.3 : 0.3;
-    scene.add(cam2);
+    const wallOffset = SECTION_W / 2 - 0.3;
+    // Left wall camera
+    const camL = makeCam();
+    camL.position.set(cx - wallOffset, HEIGHT - 1.5, 0);
+    camL.rotation.y = Math.PI / 2;
+    scene.add(camL);
+    // Right wall camera
+    const camR = makeCam();
+    camR.position.set(cx + wallOffset, HEIGHT - 1.5, 0);
+    camR.rotation.y = -Math.PI / 2;
+    scene.add(camR);
   });
 }

@@ -900,8 +900,9 @@ function animate() {
 
     // Blinking lights
     const blink = Math.sin(t * 6 + d.blinkPhase) > 0.3;
-    d.leds.forEach(led => { led.material.emissiveIntensity = blink ? 1.5 : 0; });
-    d.blinkLight.intensity = blink ? 0.8 : 0;
+    d.leds.forEach(led => { led.material.emissiveIntensity = blink ? 2.0 : 0; });
+    d.blinkLight.intensity = blink ? 3 : 0;
+    d.glowSprite.material.opacity = blink ? 1 : 0;
 
     // Telemetry
     const battEl = document.querySelector(`[data-tel="batt-${i}"]`);

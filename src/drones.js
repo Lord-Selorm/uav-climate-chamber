@@ -226,9 +226,26 @@ export function buildDrones(scene) {
     const { group, props, leds } = type.fn(type.color);
     group.position.set(cx, 3.0, 0);
     scene.add(group);
-    const blinkLight = new THREE.PointLight(type.color, 0, 1.5);
-    blinkLight.position.set(0, 0.3, 0);
+    const blinkLight = new THREE.PointLight(type.color, 2, 6);
+    blinkLight.position.set(0, 0.4, 0);
     group.add(blinkLight);
+    // Glow sprite (always faces camera)
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 64;
+    glowCanvas.height = 64;
+    const ctx = glowCanvas.getContext('2d');
+    const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.2, new THREE.Color(type.color).getStyle());
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 64, 64);
+    const glowTexture = new THREE.CanvasTexture(glowCanvas);
+    const glowMat = new THREE.SpriteMaterial({ map: glowTexture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    const glowSprite = new THREE.Sprite(glowMat);
+    glowSprite.position.set(0, 0.4, 0);
+    glowSprite.scale.set(0.6, 0.6, 1);
+    group.add(glowSprite);
     const sparks = makeDroneFX(30, 0xffcc44, 0.04, 0.4,
       (v, stress) => { v.x = (Math.random() - 0.5) * 3 * stress; v.y = 0.5 + Math.random() * 2 * stress; v.z = (Math.random() - 0.5) * 3 * stress; },
       THREE.AdditiveBlending);
@@ -237,7 +254,7 @@ export function buildDrones(scene) {
       THREE.NormalBlending);
     const driftPhase = Math.random() * 6.28;
     drones.push({
-      group, props, leds, blinkLight, phase: i * Math.PI / 2, baseY: 3.0, baseX: cx,
+      group, props, leds, blinkLight, glowSprite, phase: i * Math.PI / 2, baseY: 3.0, baseX: cx,
       windOffset: 0, windVel: 0, wobblePhase: Math.random() * 6.28,
       targetX: cx, sparks, smoke, type: type.label, driftPhase,
       blinkPhase: i * Math.PI / 3
