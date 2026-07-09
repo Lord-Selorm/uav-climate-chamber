@@ -188,139 +188,177 @@ export function buildControlRoom(scene, flags) {
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x3a3a4a, metalness: 0.4, roughness: 0.6 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.6, roughness: 0.4 });
   const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0x88ccff, metalness: 0, roughness: 0.05,
-    transparent: true, opacity: 0.15, side: THREE.DoubleSide
+    color: 0xaaddff, metalness: 0, roughness: 0.05,
+    transparent: true, opacity: 0.12, side: THREE.DoubleSide
   });
-  const interiorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a });
-  const glowMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0xff8800, emissiveIntensity: 0.5 });
-  const screenMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.6 });
   const frameMatL = new THREE.MeshStandardMaterial({ color: 0x4a4a5a, metalness: 0.7, roughness: 0.3 });
+  const glowMat = new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xffaa33, emissiveIntensity: 0.8 });
+  const screenMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.7 });
+  const deskMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, metalness: 0.3, roughness: 0.6 });
+  const chairMat = new THREE.MeshStandardMaterial({ color: 0x222233 });
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xddbb99 });
+  const clothMat = new THREE.MeshStandardMaterial({ color: 0x334466 });
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.2, roughness: 0.8 });
+
+  // Make control room bigger: 8m wide, 5m deep, 4m tall
+  const CR_W = 8, CR_D = 5, CR_H = 4;
 
   // Floor
-  const floor = makeBox(5, 0.15, 4, new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.2, roughness: 0.8 }));
+  const floor = makeBox(CR_W, 0.15, CR_D, floorMat);
   floor.position.set(0, 0.075, 0);
   room.add(floor);
 
   // Back wall
-  const back = makeBox(5, 3, 0.15, wallMat);
-  back.position.set(0, 1.5, -2);
+  const back = makeBox(CR_W, CR_H, 0.15, wallMat);
+  back.position.set(0, CR_H / 2, -CR_D / 2);
   room.add(back);
 
   // Left wall
-  const left = makeBox(0.15, 3, 4, wallMat);
-  left.position.set(-2.5, 1.5, 0);
+  const left = makeBox(0.15, CR_H, CR_D, wallMat);
+  left.position.set(-CR_W / 2, CR_H / 2, 0);
   room.add(left);
 
   // Right wall
-  const right = makeBox(0.15, 3, 4, wallMat);
-  right.position.set(2.5, 1.5, 0);
+  const right = makeBox(0.15, CR_H, CR_D, wallMat);
+  right.position.set(CR_W / 2, CR_H / 2, 0);
   room.add(right);
 
-  // Front wall (facing chamber) — glass panels with frame
-  const frontFrame = makeBox(5, 3, 0.1, frameMatL);
-  frontFrame.position.set(0, 1.5, 2);
+  // Front wall — full glass with frame
+  const frontFrame = makeBox(CR_W, CR_H, 0.1, frameMatL);
+  frontFrame.position.set(0, CR_H / 2, CR_D / 2);
   room.add(frontFrame);
-  const frontGlass = makeBox(4.4, 2.4, 0.04, glassMat);
-  frontGlass.position.set(0, 1.5, 2.07);
-  room.add(frontGlass);
+  // Large glass panels
+  for (let i = -1; i <= 1; i += 2) {
+    const panel = makeBox(3.2, CR_H - 0.6, 0.04, glassMat);
+    panel.position.set(i * 1.8, CR_H / 2, CR_D / 2 + 0.07);
+    room.add(panel);
+  }
+  // Window divider
+  const divider = makeBox(0.06, CR_H - 0.6, 0.04, frameMatL);
+  divider.position.set(0, CR_H / 2, CR_D / 2 + 0.07);
+  room.add(divider);
 
-  // Roof
-  const roof = makeBox(5.4, 0.12, 4.4, roofMat);
-  roof.position.set(0, 3, 0.2);
+  // Roof with overhang
+  const roof = makeBox(CR_W + 0.6, 0.12, CR_D + 0.4, roofMat);
+  roof.position.set(0, CR_H, 0);
   room.add(roof);
 
-  // Interior warm glow light
-  const interiorLight = new THREE.PointLight(0xff8844, 1.5, 6);
-  interiorLight.position.set(0, 2.5, 0);
-  room.add(interiorLight);
-
-  // Interior glow plane (ceiling light panel)
-  const lightPanel = makeBox(0.5, 0.02, 0.3, glowMat);
-  lightPanel.position.set(0, 2.9, 0);
+  // Ceiling light panel
+  const lightPanel = makeBox(1.2, 0.02, 0.6, glowMat);
+  lightPanel.position.set(0, CR_H - 0.1, 0);
   room.add(lightPanel);
 
-  // Monitor screens inside (visible through glass)
-  for (let i = -1; i <= 1; i += 2) {
-    const screen = makeBox(0.6, 0.4, 0.05, screenMat);
-    screen.position.set(i * 1.2, 1.3, -1.85);
-    screen.rotation.y = 0;
-    room.add(screen);
-    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.3, 6), wallMat);
-    stand.position.set(i * 1.2, 0.35, -1.85);
-    room.add(stand);
-    const base = makeBox(0.15, 0.03, 0.12, wallMat);
-    base.position.set(i * 1.2, 0.05, -1.85);
-    room.add(base);
-  }
+  // Interior glow
+  const interiorLight = new THREE.PointLight(0xff8844, 2, 8);
+  interiorLight.position.set(0, CR_H - 0.5, 0);
+  room.add(interiorLight);
 
-  // Desk
-  const deskMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, metalness: 0.3, roughness: 0.6 });
-  const desk = makeBox(3.5, 0.06, 1.0, deskMat);
-  desk.position.set(0, 0.7, -1.2);
+  // ---- Desk ----
+  const desk = makeBox(5, 0.06, 1.2, deskMat);
+  desk.position.set(0, 0.75, -0.8);
   room.add(desk);
 
-  // Chairs
-  const chairMat = new THREE.MeshStandardMaterial({ color: 0x222233 });
-  for (let i = -1; i <= 1; i += 2) {
-    const chairBase = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.4, 6), frameMatL);
-    chairBase.position.set(i * 1.0, 0.2, -1.2);
-    room.add(chairBase);
-    const seat = makeBox(0.3, 0.04, 0.3, chairMat);
-    seat.position.set(i * 1.0, 0.42, -1.2);
-    room.add(seat);
+  // Monitor screens on desk
+  for (let i = -1; i <= 1; i += 1) {
+    const screen = makeBox(0.7, 0.45, 0.05, screenMat);
+    screen.position.set(i * 1.4, 1.05, -0.4);
+    room.add(screen);
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.3, 6), wallMat);
+    stand.position.set(i * 1.4, 0.9, -0.4);
+    room.add(stand);
   }
 
-  // ---- Outside Fluorescent Lights on Chamber Exterior ----
+  // ---- Human figures ----
+  function makePerson(x, z) {
+    const g = new THREE.Group();
+    // Body / torso
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.5, 8), clothMat);
+    torso.position.y = 0.65;
+    g.add(torso);
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), skinMat);
+    head.position.y = 1.0;
+    g.add(head);
+    // Arms
+    for (let side = -1; side <= 1; side += 2) {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.4, 6), skinMat);
+      arm.position.set(side * 0.22, 0.75, 0);
+      arm.rotation.z = side * 0.2;
+      g.add(arm);
+    }
+    // Legs
+    for (let side = -1; side <= 1; side += 2) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.4, 6), new THREE.MeshStandardMaterial({ color: 0x222244 }));
+      leg.position.set(side * 0.08, 0.25, 0);
+      g.add(leg);
+    }
+    g.position.set(x, 0, z);
+    return g;
+  }
+
+  // Place people inside the control room
+  room.add(makePerson(-1.8, 0));
+  room.add(makePerson(1.8, 0.5));
+  room.add(makePerson(-0.5, -1.2));
+
+  // ---- Step / platform at entrance ----
+  const stepMat = new THREE.MeshStandardMaterial({ color: 0x5a5a6a, metalness: 0.3, roughness: 0.7 });
+  const step = makeBox(CR_W * 0.6, 0.1, 0.5, stepMat);
+  step.position.set(0, 0.05, CR_D / 2 + 0.3);
+  room.add(step);
+
+  // ---- Fluorescent Lights on Chamber Exterior ----
   const housingMat = new THREE.MeshStandardMaterial({ color: 0x556666, metalness: 0.6, roughness: 0.4 });
-  const tubeOnMat = new THREE.MeshStandardMaterial({ color: 0xeeeeff, emissive: 0xaaccff, emissiveIntensity: 1.2 });
+  const tubeOnMat = new THREE.MeshStandardMaterial({ color: 0xeeeeff, emissive: 0xaaccff, emissiveIntensity: 1.5 });
   const tubeOffMat = new THREE.MeshStandardMaterial({ color: 0x666677 });
 
   function makeFluorescentTube() {
     const g = new THREE.Group();
-    const housing = makeBox(0.08, 0.04, 1.2, housingMat);
+    const housing = makeBox(1.2, 0.04, 0.08, housingMat);
     g.add(housing);
-    const tube = makeBox(0.04, 0.025, 1.0, tubeOnMat);
-    tube.position.y = -0.025;
+    const tube = makeBox(1.0, 0.025, 0.04, tubeOnMat);
+    tube.position.z = -0.025;
     g.add(tube);
     return { group: g, tube, tubeOnMat, tubeOffMat };
   }
 
-  // Front wall (z = DEPTH/2, above glass doors)
+  // Tube is now along x-axis (horizontal), housing above tube
+
+  // Front wall (z = DEPTH/2, above glass) — horizontal along x-axis
   const frontTubes = [];
   for (let i = -1; i <= 1; i++) {
     const ft = makeFluorescentTube();
-    ft.group.position.set(i * 8, HEIGHT - 0.3, DEPTH / 2 + 0.15);
-    ft.group.rotation.x = Math.PI / 2;
+    ft.group.position.set(i * 6, HEIGHT - 0.2, DEPTH / 2 + 0.15);
     scene.add(ft.group);
     frontTubes.push(ft);
   }
 
-  // Back wall (z = -DEPTH/2)
+  // Back wall (z = -DEPTH/2) — horizontal along x-axis
   const backTubes = [];
   for (let i = -1; i <= 1; i++) {
     const bt = makeFluorescentTube();
-    bt.group.position.set(i * 8, HEIGHT - 0.3, -DEPTH / 2 - 0.15);
-    bt.group.rotation.x = -Math.PI / 2;
+    bt.group.position.set(i * 6, HEIGHT - 0.2, -DEPTH / 2 - 0.15);
+    bt.group.rotation.y = Math.PI;
     scene.add(bt.group);
     backTubes.push(bt);
   }
 
-  // Left side wall (x = -_wallOff)
+  // Left side wall (x = -_wallOff) — horizontal along z-axis
   const leftTubes = [];
   for (let i = -1; i <= 1; i += 2) {
     const lt = makeFluorescentTube();
-    lt.group.position.set(-_wallOff - 0.15, HEIGHT - 0.3, i * 3);
-    lt.group.rotation.z = Math.PI / 2;
+    lt.group.position.set(-_wallOff - 0.15, HEIGHT - 0.2, i * 3);
+    lt.group.rotation.y = -Math.PI / 2;
     scene.add(lt.group);
     leftTubes.push(lt);
   }
 
-  // Right side wall (x = _wallOff)
+  // Right side wall (x = _wallOff) — horizontal along z-axis
   const rightTubes = [];
   for (let i = -1; i <= 1; i += 2) {
     const rt = makeFluorescentTube();
-    rt.group.position.set(_wallOff + 0.15, HEIGHT - 0.3, i * 3);
-    rt.group.rotation.z = -Math.PI / 2;
+    rt.group.position.set(_wallOff + 0.15, HEIGHT - 0.2, i * 3);
+    rt.group.rotation.y = Math.PI / 2;
     scene.add(rt.group);
     rightTubes.push(rt);
   }
@@ -328,30 +366,38 @@ export function buildControlRoom(scene, flags) {
   const allTubes = [...frontTubes, ...backTubes, ...leftTubes, ...rightTubes];
 
   // ---- Main Switch Box on Control Room Wall ----
-  const switchBoxMat = new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.5, roughness: 0.4 });
-  const swOnMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 0.6 });
-  const swOffMat = new THREE.MeshStandardMaterial({ color: 0x442200 });
-  const labelMat = new THREE.MeshStandardMaterial({ color: 0x888888, emissive: 0x888888, emissiveIntensity: 0.1 });
+  const switchBoxMat = new THREE.MeshStandardMaterial({ color: 0x444466, metalness: 0.6, roughness: 0.3 });
+  const swOnMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 1.0 });
+  const swOffMat = new THREE.MeshStandardMaterial({ color: 0x661100 });
+  const labelMat = new THREE.MeshStandardMaterial({ color: 0x999988, emissive: 0x999988, emissiveIntensity: 0.15 });
 
   function makeSwitch() {
     const g = new THREE.Group();
-    const box = makeBox(0.25, 0.35, 0.1, switchBoxMat);
+    // Switch box body
+    const box = makeBox(0.35, 0.5, 0.12, switchBoxMat);
     g.add(box);
-    const toggle = makeBox(0.015, 0.07, 0.015, new THREE.MeshStandardMaterial({ color: 0xcccccc }));
-    toggle.position.set(0, 0.05, 0.07);
-    g.add(toggle);
-    const ind = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), swOnMat);
-    ind.position.set(0, 0.18, 0.07);
+    // Toggle lever (bigger)
+    const lever = makeBox(0.02, 0.15, 0.02, new THREE.MeshStandardMaterial({ color: 0xcccccc }));
+    lever.position.set(0, 0.12, 0.09);
+    g.add(lever);
+    // Toggle base
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.02, 8), new THREE.MeshStandardMaterial({ color: 0x888888 }));
+    base.position.set(0, 0.05, 0.09);
+    g.add(base);
+    // Indicator light (bigger)
+    const ind = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), swOnMat);
+    ind.position.set(0, 0.22, 0.09);
     g.add(ind);
-    const lbl = makeBox(0.2, 0.03, 0.015, labelMat);
-    lbl.position.set(0, -0.1, 0.07);
+    // Label plate
+    const lbl = makeBox(0.3, 0.04, 0.015, labelMat);
+    lbl.position.set(0, -0.15, 0.09);
     g.add(lbl);
-    return { group: g, toggle, ind, swOnMat, swOffMat };
+    return { group: g, lever, ind, swOnMat, swOffMat };
   }
 
   const mainSwitch = makeSwitch();
-  mainSwitch.group.position.set(2.6, 2.0, 0.4);
-  mainSwitch.group.rotation.y = -Math.PI / 2;
+  mainSwitch.group.position.set(CR_W / 2 - 0.2, 2.2, -CR_D / 2 + 0.8);
+  mainSwitch.group.rotation.y = Math.PI;
   room.add(mainSwitch.group);
 
   return { allTubes, mainSwitch };
