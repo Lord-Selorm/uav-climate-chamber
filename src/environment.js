@@ -311,15 +311,19 @@ export function buildControlRoom(scene, flags) {
 
   // ---- Fluorescent tube factory (shared with chamber lights) ----
   const housingMat = new THREE.MeshStandardMaterial({ color: 0x556666, metalness: 0.6, roughness: 0.4 });
+  const tubeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88ddff, emissiveIntensity: 3.0 });
+  const tubeGlowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88ddff, emissiveIntensity: 3.0 });
+
+  window.__tubeMeshes = [];
 
   function makeFluorescentTube() {
     const g = new THREE.Group();
     const housing = makeBox(1.2, 0.04, 0.08, housingMat);
     g.add(housing);
-    const tube = makeBox(1.0, 0.025, 0.04, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88ddff, emissiveIntensity: 3.0 }));
-    tube.userData.isFluorescent = true;
+    const tube = makeBox(1.0, 0.025, 0.04, tubeMat.clone());
     tube.position.z = -0.025;
     g.add(tube);
+    window.__tubeMeshes.push(tube);
     return { group: g, tube };
   }
 
@@ -391,7 +395,30 @@ export function buildControlRoom(scene, flags) {
     allTubes.push(rt);
   }
 
-  // ---- Main Switch — BIG, on exterior front wall of control room ----
+  // ---- PointLights to make fluorescent glow visible ----
+  const tubeLights = [];
+  function addTubeLight(x, y, z) {
+    const pl = new THREE.PointLight(0x88ddff, 0, 8);
+    pl.position.set(x, y, z);
+    scene.add(pl);
+    tubeLights.push(pl);
+  }
+  // Chamber front
+  addTubeLight(-6, HEIGHT - 1, DEPTH / 2 + 0.5);
+  addTubeLight(6, HEIGHT - 1, DEPTH / 2 + 0.5);
+  // Chamber back
+  addTubeLight(-6, HEIGHT - 1, -DEPTH / 2 - 0.5);
+  addTubeLight(6, HEIGHT - 1, -DEPTH / 2 - 0.5);
+  // Chamber sides
+  addTubeLight(-_wallOff - 0.5, HEIGHT - 1, 0);
+  addTubeLight(_wallOff + 0.5, HEIGHT - 1, 0);
+  // Control room
+  addTubeLight(-3, CR_H - 1, 14 - CR_D / 2 - 0.5);
+  addTubeLight(3, CR_H - 1, 14 - CR_D / 2 - 0.5);
+  addTubeLight(-3, CR_H - 1, 14 + CR_D / 2 + 0.5);
+  addTubeLight(3, CR_H - 1, 14 + CR_D / 2 + 0.5);
+
+  // ---- Main Switch — beside control room (right side) ----
   const switchBoxMat = new THREE.MeshStandardMaterial({ color: 0x555577, metalness: 0.6, roughness: 0.3 });
   const swOnMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 1.5 });
   const swOffMat = new THREE.MeshStandardMaterial({ color: 0x881100 });
@@ -443,10 +470,10 @@ export function buildControlRoom(scene, flags) {
 
   const mainSwitch = makeSwitch();
   const poleGroup = makeSwitchPole();
-  poleGroup.position.set(4.5, 0, 14 + CR_D / 2 + 1.5);
+  poleGroup.position.set(5, 0, 14);
   scene.add(poleGroup);
-  mainSwitch.group.position.set(4.5, 1.9, 14 + CR_D / 2 + 1.65);
+  mainSwitch.group.position.set(5, 1.9, 14);
   scene.add(mainSwitch.group);
 
-  return { allTubes, mainSwitch, crDoors: { left: doorLeftPivot, right: doorRightPivot, open: false } };
+  return { allTubes, mainSwitch, crDoors: { left: doorLeftPivot, right: doorRightPivot, open: false }, tubeLights };
 }

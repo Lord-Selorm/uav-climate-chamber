@@ -60,13 +60,27 @@ initCamera(camera, controls, scene, pipCamera, pipRenderer);
 buildChamber(scene);
 const vents = buildVents(scene);
 buildEnvironment(scene);
-const { allTubes, mainSwitch, crDoors } = buildControlRoom(scene, flags);
+const { allTubes, mainSwitch, crDoors, tubeLights } = buildControlRoom(scene, flags);
 buildLights(scene);
 const { equipFX: eqFX, failFX: flFX } = buildEquipment(scene);
 eqFX.forEach(fx => equipFX.push(fx));
 flFX.forEach(fx => failFX.push(fx));
 buildDrones(scene);
 buildCameras(scene);
+
+function setLights(on) {
+  flags.lightsOn = on;
+  (window.__tubeMeshes || []).forEach(tube => {
+    tube.material.color.setHex(on ? 0xffffff : 0x222233);
+    tube.material.emissive.setHex(on ? 0x88ddff : 0x000000);
+    tube.material.emissiveIntensity = on ? 3.0 : 0;
+  });
+  tubeLights.forEach(pl => { pl.intensity = on ? 2.0 : 0; });
+  mainSwitch.ind.material = on ? mainSwitch.swOnMat : mainSwitch.swOffMat;
+  mainSwitch.glow.intensity = on ? 0.5 : 0;
+  const lbl = document.querySelector('#lights-status');
+  if (lbl) lbl.textContent = on ? 'LIGHTS ON' : 'LIGHTS OFF';
+}
 buildParticles(scene);
 buildInstruments(scene);
 buildLabels(scene);
@@ -716,18 +730,7 @@ renderer.domElement.addEventListener('click', (e) => {
     const hit = intersects[0].object;
     // Check for switch FIRST
     if (hit.parent?.userData?.isSwitch) {
-      flags.lightsOn = !flags.lightsOn;
-      scene.traverse(child => {
-        if (child.isMesh && child.userData.isFluorescent) {
-          child.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
-          child.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
-          child.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
-        }
-      });
-      mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
-      mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
-      const lbl = document.querySelector('#lights-status');
-      if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
+      setLights(!flags.lightsOn);
       return;
     }
     const eqIdx = centers.findIndex((c, i) => Math.abs(hit.position.x - centers[i]) < 3);
@@ -782,18 +785,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 't' || e.key === 'T') { document.getElementById('thermal-btn')?.click(); }
   if (e.key === 'p' || e.key === 'P') { document.getElementById('follow-btn')?.click(); }
   if (e.key === 'l' || e.key === 'L') {
-    flags.lightsOn = !flags.lightsOn;
-    scene.traverse(child => {
-      if (child.isMesh && child.userData.isFluorescent) {
-        child.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
-        child.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
-        child.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
-      }
-    });
-    mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
-    mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
-    const lbl = document.querySelector('#lights-status');
-    if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
+    setLights(!flags.lightsOn);
   }
   if (e.key === 'f' || e.key === 'F') { document.getElementById('formation-btn')?.click(); }
   if (e.key === 'g' || e.key === 'G') {
