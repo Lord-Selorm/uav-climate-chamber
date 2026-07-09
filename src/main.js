@@ -714,6 +714,18 @@ renderer.domElement.addEventListener('click', (e) => {
   const tooltip = document.getElementById('eq-tooltip');
   if (intersects.length > 0) {
     const hit = intersects[0].object;
+    // Check for switch FIRST
+    if (hit.parent === mainSwitch.group) {
+      flags.lightsOn = !flags.lightsOn;
+      allTubes.forEach(t => {
+        t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat;
+      });
+      mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
+      mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
+      const lbl = document.querySelector('#lights-status');
+      if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
+      return;
+    }
     const eqIdx = centers.findIndex((c, i) => Math.abs(hit.position.x - centers[i]) < 3);
     const idx = eqIdx >= 0 ? eqIdx : 0;
     const key = ['heater', 'ac', 'fan', 'sprinklers'][idx];
@@ -749,15 +761,6 @@ renderer.domElement.addEventListener('click', (e) => {
     tooltip.style.left = (e.clientX + 12) + 'px';
     tooltip.style.top = (e.clientY - 10) + 'px';
     setTimeout(() => { tooltip.style.display = 'none'; }, 1500);
-  } else if (hit.parent === mainSwitch.group) {
-    flags.lightsOn = !flags.lightsOn;
-    allTubes.forEach(t => {
-      t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat;
-    });
-    mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
-    mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
-    const lbl = document.querySelector('#lights-status');
-    if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
   }
 });
 renderer.domElement.addEventListener('mousemove', (e) => {
