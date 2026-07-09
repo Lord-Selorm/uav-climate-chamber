@@ -777,6 +777,14 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'm' || e.key === 'M') { document.getElementById('mute-btn')?.click(); }
   if (e.key === 't' || e.key === 'T') { document.getElementById('thermal-btn')?.click(); }
   if (e.key === 'p' || e.key === 'P') { document.getElementById('follow-btn')?.click(); }
+  if (e.key === 'l' || e.key === 'L') {
+    flags.lightsOn = !flags.lightsOn;
+    allTubes.forEach(t => { t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat; });
+    mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
+    mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
+    const lbl = document.querySelector('#lights-status');
+    if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
+  }
   if (e.key === 'f' || e.key === 'F') { document.getElementById('formation-btn')?.click(); }
   if (e.key === '?') {
     const h = document.getElementById('help-overlay');
