@@ -4,7 +4,7 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { centers, HEIGHT, DEPTH, SECTION_W, colors, _totalW, _bwW, _wallOff } from './constants.js';
 import { makeBox, steel, darkSteel, frameMat } from './utils.js';
 import { buildChamber, buildVents } from './chamber.js';
-import { buildEnvironment, buildControlRoom } from './environment.js';
+import { buildEnvironment, buildControlRoom, buildWarningLight } from './environment.js';
 import { buildLights } from './lights.js';
 import { buildEquipment, buildCameras } from './equipment.js';
 import { buildDrones } from './drones.js';
@@ -61,6 +61,7 @@ buildChamber(scene);
 const vents = buildVents(scene);
 buildEnvironment(scene);
 const { allTubes, mainSwitch, crDoors, tubeLights } = buildControlRoom(scene, flags);
+const warningLights = buildWarningLight(scene);
 buildLights(scene);
 const { equipFX: eqFX, failFX: flFX } = buildEquipment(scene);
 eqFX.forEach(fx => equipFX.push(fx));
@@ -1204,6 +1205,23 @@ function animate() {
       wind: Math.round(windVal * 60),
       rain: Math.round(rainVal * 100),
     });
+  }
+
+  // Warning tower logic
+  const anyOn = Object.values(equipmentState).some(v => v);
+  const anyFailed = Object.values(equipmentFailed).some(v => v);
+  if (anyFailed) {
+    warningLights[0].mesh.material = warningLights[0].offMat;
+    warningLights[1].mesh.material = warningLights[1].onMat;
+    warningLights[2].mesh.material = warningLights[2].offMat;
+  } else if (anyOn) {
+    warningLights[0].mesh.material = warningLights[0].onMat;
+    warningLights[1].mesh.material = warningLights[1].offMat;
+    warningLights[2].mesh.material = warningLights[2].offMat;
+  } else {
+    warningLights[0].mesh.material = warningLights[0].offMat;
+    warningLights[1].mesh.material = warningLights[1].offMat;
+    warningLights[2].mesh.material = warningLights[2].onMat;
   }
 
   controls.update();

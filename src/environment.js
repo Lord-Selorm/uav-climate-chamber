@@ -477,3 +477,60 @@ export function buildControlRoom(scene, flags) {
 
   return { allTubes, mainSwitch, crDoors: { left: doorLeftPivot, right: doorRightPivot, open: false }, tubeLights };
 }
+
+// ---- Warning Tower (traffic light) outside chamber ----
+export function buildWarningLight(scene) {
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.8, roughness: 0.2 });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
+  const housingMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.5, roughness: 0.5 });
+  const hoodMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.3 });
+  const redOnMat = new THREE.MeshStandardMaterial({ color: 0xff2200, emissive: 0xff2200, emissiveIntensity: 3.0 });
+  const redOffMat = new THREE.MeshStandardMaterial({ color: 0x661100 });
+  const amberOnMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xffaa00, emissiveIntensity: 3.0 });
+  const amberOffMat = new THREE.MeshStandardMaterial({ color: 0x663300 });
+  const greenOnMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 3.0 });
+  const greenOffMat = new THREE.MeshStandardMaterial({ color: 0x004422 });
+
+  const g = new THREE.Group();
+  // Pole
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 4.5, 10), poleMat);
+  pole.position.y = 2.25;
+  g.add(pole);
+  // Base
+  const base = makeBox(0.4, 0.1, 0.4, baseMat);
+  base.position.y = 0.05;
+  g.add(base);
+  // Light units (3 stacked)
+  const lights = [];
+  const colors = [redOnMat, redOffMat, amberOnMat, amberOffMat, greenOnMat, greenOffMat];
+  const names = ['red', 'amber', 'green'];
+  for (let i = 0; i < 3; i++) {
+    const unit = new THREE.Group();
+    unit.position.y = 1.0 + i * 0.9;
+    // Housing box
+    const box = makeBox(0.5, 0.5, 0.3, housingMat);
+    box.position.z = -0.05;
+    unit.add(box);
+    // Light sphere
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), colors[i * 2]);
+    sphere.position.z = 0.12;
+    unit.add(sphere);
+    // Hood (small shade above each light)
+    const hood = makeBox(0.4, 0.04, 0.15, hoodMat);
+    hood.position.set(0, 0.18, 0.1);
+    unit.add(hood);
+    g.add(unit);
+    lights.push({
+      name: names[i],
+      mesh: sphere,
+      onMat: colors[i * 2],
+      offMat: colors[i * 2 + 1]
+    });
+  }
+
+  // Position at chamber front-left corner, visible from camera
+  g.position.set(-15, 0, DEPTH / 2 + 1);
+  scene.add(g);
+
+  return lights;
+}
