@@ -222,16 +222,24 @@ export function buildControlRoom(scene, flags) {
   right.position.set(CR_W / 2, CR_H / 2, 0);
   room.add(right);
 
-  // Front wall (-z side, FACING CHAMBER) — glass sliding doors
+  // Front wall (-z side, FACING CHAMBER) — hinged glass doors
   const frontFrame = makeBox(CR_W, CR_H, 0.1, frameMatL);
   frontFrame.position.set(0, CR_H / 2, -CR_D / 2);
   room.add(frontFrame);
+  // Left door (hinged on left edge)
+  const doorLeftPivot = new THREE.Group();
+  doorLeftPivot.position.set(-3.4, 0, -CR_D / 2 - 0.07);
+  room.add(doorLeftPivot);
   const crDoorLeft = makeBox(3.2, CR_H - 0.6, 0.04, glassMat);
-  crDoorLeft.position.set(-1.8, CR_H / 2, -CR_D / 2 - 0.07);
-  room.add(crDoorLeft);
+  crDoorLeft.position.set(1.6, CR_H / 2, 0);
+  doorLeftPivot.add(crDoorLeft);
+  // Right door (hinged on right edge)
+  const doorRightPivot = new THREE.Group();
+  doorRightPivot.position.set(3.4, 0, -CR_D / 2 - 0.07);
+  room.add(doorRightPivot);
   const crDoorRight = makeBox(3.2, CR_H - 0.6, 0.04, glassMat);
-  crDoorRight.position.set(1.8, CR_H / 2, -CR_D / 2 - 0.07);
-  room.add(crDoorRight);
+  crDoorRight.position.set(-1.6, CR_H / 2, 0);
+  doorRightPivot.add(crDoorRight);
   const crDivider = makeBox(0.06, CR_H - 0.6, 0.04, frameMatL);
   crDivider.position.set(0, CR_H / 2, -CR_D / 2 - 0.07);
   room.add(crDivider);
@@ -309,6 +317,7 @@ export function buildControlRoom(scene, flags) {
     const housing = makeBox(1.2, 0.04, 0.08, housingMat);
     g.add(housing);
     const tube = makeBox(1.0, 0.025, 0.04, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88ddff, emissiveIntensity: 3.0 }));
+    tube.userData.isFluorescent = true;
     tube.position.z = -0.025;
     g.add(tube);
     return { group: g, tube };
@@ -439,5 +448,5 @@ export function buildControlRoom(scene, flags) {
   mainSwitch.group.position.set(4.5, 1.9, 14 + CR_D / 2 + 1.65);
   scene.add(mainSwitch.group);
 
-  return { allTubes, mainSwitch, crDoors: { left: crDoorLeft, right: crDoorRight, open: false, offset: 3.6 } };
+  return { allTubes, mainSwitch, crDoors: { left: doorLeftPivot, right: doorRightPivot, open: false } };
 }

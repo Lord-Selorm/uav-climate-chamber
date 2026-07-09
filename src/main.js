@@ -717,10 +717,12 @@ renderer.domElement.addEventListener('click', (e) => {
     // Check for switch FIRST
     if (hit.parent?.userData?.isSwitch) {
       flags.lightsOn = !flags.lightsOn;
-      allTubes.forEach(t => {
-        t.tube.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
-        t.tube.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
-        t.tube.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
+      scene.traverse(child => {
+        if (child.isMesh && child.userData.isFluorescent) {
+          child.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
+          child.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
+          child.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
+        }
       });
       mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
       mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
@@ -781,10 +783,12 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'p' || e.key === 'P') { document.getElementById('follow-btn')?.click(); }
   if (e.key === 'l' || e.key === 'L') {
     flags.lightsOn = !flags.lightsOn;
-    allTubes.forEach(t => {
-      t.tube.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
-      t.tube.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
-      t.tube.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
+    scene.traverse(child => {
+      if (child.isMesh && child.userData.isFluorescent) {
+        child.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
+        child.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
+        child.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
+      }
     });
     mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
     mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
@@ -794,9 +798,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'f' || e.key === 'F') { document.getElementById('formation-btn')?.click(); }
   if (e.key === 'g' || e.key === 'G') {
     crDoors.open = !crDoors.open;
-    const off = crDoors.open ? crDoors.offset : 0;
-    crDoors.left.position.x = -1.8 - off;
-    crDoors.right.position.x = 1.8 + off;
+    crDoors.left.rotation.y = crDoors.open ? Math.PI * 0.4 : 0;
+    crDoors.right.rotation.y = crDoors.open ? -Math.PI * 0.4 : 0;
   }
   if (e.key === '?') {
     const h = document.getElementById('help-overlay');
