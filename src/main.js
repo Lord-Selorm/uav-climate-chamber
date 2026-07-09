@@ -755,6 +755,7 @@ renderer.domElement.addEventListener('click', (e) => {
       t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat;
     });
     mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
+    mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
     const lbl = document.querySelector('#lights-status');
     if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
   }
