@@ -61,8 +61,6 @@ buildChamber(scene);
 const vents = buildVents(scene);
 buildEnvironment(scene);
 const { allTubes, mainSwitch } = buildControlRoom(scene, flags);
-// Add switch meshes to raycaster targets
-mainSwitch.group.children.forEach(c => { if (c.isMesh) eqMeshes.push(c); });
 buildLights(scene);
 const { equipFX: eqFX, failFX: flFX } = buildEquipment(scene);
 eqFX.forEach(fx => equipFX.push(fx));
@@ -706,6 +704,8 @@ scene.children.forEach(child => {
     child.children.forEach(m => { if (m.isMesh) eqMeshes.push(m); });
   }
 });
+// Add switch box meshes to click targets
+mainSwitch.group.children.forEach(c => { if (c.isMesh) eqMeshes.push(c); });
 renderer.domElement.addEventListener('click', (e) => {
   pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
