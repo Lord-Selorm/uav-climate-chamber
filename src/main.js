@@ -60,7 +60,7 @@ initCamera(camera, controls, scene, pipCamera, pipRenderer);
 buildChamber(scene);
 const vents = buildVents(scene);
 buildEnvironment(scene);
-const { allTubes, mainSwitch } = buildControlRoom(scene, flags);
+const { allTubes, mainSwitch, crDoors } = buildControlRoom(scene, flags);
 buildLights(scene);
 const { equipFX: eqFX, failFX: flFX } = buildEquipment(scene);
 eqFX.forEach(fx => equipFX.push(fx));
@@ -715,10 +715,12 @@ renderer.domElement.addEventListener('click', (e) => {
   if (intersects.length > 0) {
     const hit = intersects[0].object;
     // Check for switch FIRST
-    if (hit.parent === mainSwitch.group) {
+    if (hit.parent?.userData?.isSwitch) {
       flags.lightsOn = !flags.lightsOn;
       allTubes.forEach(t => {
-        t.tube.material.emissiveIntensity = flags.lightsOn ? 1.5 : 0;
+        t.tube.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
+        t.tube.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
+        t.tube.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
       });
       mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
       mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
@@ -779,13 +781,23 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'p' || e.key === 'P') { document.getElementById('follow-btn')?.click(); }
   if (e.key === 'l' || e.key === 'L') {
     flags.lightsOn = !flags.lightsOn;
-    allTubes.forEach(t => { t.tube.material.emissiveIntensity = flags.lightsOn ? 1.5 : 0; });
+    allTubes.forEach(t => {
+      t.tube.material.color.setHex(flags.lightsOn ? 0xffffff : 0x333344);
+      t.tube.material.emissive.setHex(flags.lightsOn ? 0x88ddff : 0x000000);
+      t.tube.material.emissiveIntensity = flags.lightsOn ? 3.0 : 0;
+    });
     mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
     mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
     const lbl = document.querySelector('#lights-status');
     if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
   }
   if (e.key === 'f' || e.key === 'F') { document.getElementById('formation-btn')?.click(); }
+  if (e.key === 'g' || e.key === 'G') {
+    crDoors.open = !crDoors.open;
+    const off = crDoors.open ? crDoors.offset : 0;
+    crDoors.left.position.x = -1.8 - off;
+    crDoors.right.position.x = 1.8 + off;
+  }
   if (e.key === '?') {
     const h = document.getElementById('help-overlay');
     h.style.display = h.style.display === 'flex' ? 'none' : 'flex';

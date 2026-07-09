@@ -222,18 +222,19 @@ export function buildControlRoom(scene, flags) {
   right.position.set(CR_W / 2, CR_H / 2, 0);
   room.add(right);
 
-  // Front wall (-z side, FACING CHAMBER) — full glass with frame
+  // Front wall (-z side, FACING CHAMBER) — glass sliding doors
   const frontFrame = makeBox(CR_W, CR_H, 0.1, frameMatL);
   frontFrame.position.set(0, CR_H / 2, -CR_D / 2);
   room.add(frontFrame);
-  for (let i = -1; i <= 1; i += 2) {
-    const panel = makeBox(3.2, CR_H - 0.6, 0.04, glassMat);
-    panel.position.set(i * 1.8, CR_H / 2, -CR_D / 2 - 0.07);
-    room.add(panel);
-  }
-  const divider = makeBox(0.06, CR_H - 0.6, 0.04, frameMatL);
-  divider.position.set(0, CR_H / 2, -CR_D / 2 - 0.07);
-  room.add(divider);
+  const crDoorLeft = makeBox(3.2, CR_H - 0.6, 0.04, glassMat);
+  crDoorLeft.position.set(-1.8, CR_H / 2, -CR_D / 2 - 0.07);
+  room.add(crDoorLeft);
+  const crDoorRight = makeBox(3.2, CR_H - 0.6, 0.04, glassMat);
+  crDoorRight.position.set(1.8, CR_H / 2, -CR_D / 2 - 0.07);
+  room.add(crDoorRight);
+  const crDivider = makeBox(0.06, CR_H - 0.6, 0.04, frameMatL);
+  crDivider.position.set(0, CR_H / 2, -CR_D / 2 - 0.07);
+  room.add(crDivider);
 
   // Roof with overhang
   const roof = makeBox(CR_W + 0.6, 0.12, CR_D + 0.4, roofMat);
@@ -307,7 +308,7 @@ export function buildControlRoom(scene, flags) {
     const g = new THREE.Group();
     const housing = makeBox(1.2, 0.04, 0.08, housingMat);
     g.add(housing);
-    const tube = makeBox(1.0, 0.025, 0.04, new THREE.MeshStandardMaterial({ color: 0xeeeeff, emissive: 0xaaccff, emissiveIntensity: 1.5 }));
+    const tube = makeBox(1.0, 0.025, 0.04, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x88ddff, emissiveIntensity: 3.0 }));
     tube.position.z = -0.025;
     g.add(tube);
     return { group: g, tube };
@@ -393,6 +394,7 @@ export function buildControlRoom(scene, flags) {
 
   function makeSwitch() {
     const g = new THREE.Group();
+    g.userData.isSwitch = true;
     const box = makeBox(1.0, 1.2, 0.2, switchBoxMat);
     g.add(box);
     const ind = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), swOnMat);
@@ -410,7 +412,6 @@ export function buildControlRoom(scene, flags) {
     const glow = new THREE.PointLight(0x00ff44, 0.5, 2);
     glow.position.set(0, 0.3, 0.15);
     g.add(glow);
-    // internal offset set in outer position
     return { group: g, lever, ind, glow, swOnMat, swOffMat };
   }
 
@@ -433,11 +434,10 @@ export function buildControlRoom(scene, flags) {
 
   const mainSwitch = makeSwitch();
   const poleGroup = makeSwitchPole();
-  // Switch on a tall pole in front of the chamber, clearly visible
-  poleGroup.position.set(4, 0, DEPTH / 2 + 2.0);
+  poleGroup.position.set(4.5, 0, 14 + CR_D / 2 + 1.5);
   scene.add(poleGroup);
-  mainSwitch.group.position.set(4, 1.9, DEPTH / 2 + 2.15);
+  mainSwitch.group.position.set(4.5, 1.9, 14 + CR_D / 2 + 1.65);
   scene.add(mainSwitch.group);
 
-  return { allTubes, mainSwitch };
+  return { allTubes, mainSwitch, crDoors: { left: crDoorLeft, right: crDoorRight, open: false, offset: 3.6 } };
 }
