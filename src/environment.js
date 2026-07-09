@@ -302,17 +302,15 @@ export function buildControlRoom(scene, flags) {
 
   // ---- Fluorescent tube factory (shared with chamber lights) ----
   const housingMat = new THREE.MeshStandardMaterial({ color: 0x556666, metalness: 0.6, roughness: 0.4 });
-  const tubeOnMat = new THREE.MeshStandardMaterial({ color: 0xeeeeff, emissive: 0xaaccff, emissiveIntensity: 1.5 });
-  const tubeOffMat = new THREE.MeshStandardMaterial({ color: 0x666677 });
 
   function makeFluorescentTube() {
     const g = new THREE.Group();
     const housing = makeBox(1.2, 0.04, 0.08, housingMat);
     g.add(housing);
-    const tube = makeBox(1.0, 0.025, 0.04, tubeOnMat);
+    const tube = makeBox(1.0, 0.025, 0.04, new THREE.MeshStandardMaterial({ color: 0xeeeeff, emissive: 0xaaccff, emissiveIntensity: 1.5 }));
     tube.position.z = -0.025;
     g.add(tube);
-    return { group: g, tube, tubeOnMat, tubeOffMat };
+    return { group: g, tube };
   }
 
   const allTubes = [];

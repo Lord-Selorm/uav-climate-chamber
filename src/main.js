@@ -718,7 +718,7 @@ renderer.domElement.addEventListener('click', (e) => {
     if (hit.parent === mainSwitch.group) {
       flags.lightsOn = !flags.lightsOn;
       allTubes.forEach(t => {
-        t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat;
+        t.tube.material.emissiveIntensity = flags.lightsOn ? 1.5 : 0;
       });
       mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
       mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
@@ -779,7 +779,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'p' || e.key === 'P') { document.getElementById('follow-btn')?.click(); }
   if (e.key === 'l' || e.key === 'L') {
     flags.lightsOn = !flags.lightsOn;
-    allTubes.forEach(t => { t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat; });
+    allTubes.forEach(t => { t.tube.material.emissiveIntensity = flags.lightsOn ? 1.5 : 0; });
     mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
     mainSwitch.glow.intensity = flags.lightsOn ? 0.5 : 0;
     const lbl = document.querySelector('#lights-status');
