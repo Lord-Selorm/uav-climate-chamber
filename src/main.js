@@ -4,7 +4,7 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { centers, HEIGHT, DEPTH, SECTION_W, colors, _totalW, _bwW, _wallOff } from './constants.js';
 import { makeBox, steel, darkSteel, frameMat } from './utils.js';
 import { buildChamber, buildVents } from './chamber.js';
-import { buildEnvironment } from './environment.js';
+import { buildEnvironment, buildControlRoom } from './environment.js';
 import { buildLights } from './lights.js';
 import { buildEquipment, buildCameras } from './equipment.js';
 import { buildDrones } from './drones.js';
@@ -60,6 +60,9 @@ initCamera(camera, controls, scene, pipCamera, pipRenderer);
 buildChamber(scene);
 const vents = buildVents(scene);
 buildEnvironment(scene);
+const { allTubes, mainSwitch } = buildControlRoom(scene, flags);
+// Add switch meshes to raycaster targets
+mainSwitch.group.children.forEach(c => { if (c.isMesh) eqMeshes.push(c); });
 buildLights(scene);
 const { equipFX: eqFX, failFX: flFX } = buildEquipment(scene);
 eqFX.forEach(fx => equipFX.push(fx));
@@ -746,6 +749,14 @@ renderer.domElement.addEventListener('click', (e) => {
     tooltip.style.left = (e.clientX + 12) + 'px';
     tooltip.style.top = (e.clientY - 10) + 'px';
     setTimeout(() => { tooltip.style.display = 'none'; }, 1500);
+  } else if (hit.parent === mainSwitch.group) {
+    flags.lightsOn = !flags.lightsOn;
+    allTubes.forEach(t => {
+      t.tube.material = flags.lightsOn ? t.tubeOnMat : t.tubeOffMat;
+    });
+    mainSwitch.ind.material = flags.lightsOn ? mainSwitch.swOnMat : mainSwitch.swOffMat;
+    const lbl = document.querySelector('#lights-status');
+    if (lbl) lbl.textContent = flags.lightsOn ? 'LIGHTS ON' : 'LIGHTS OFF';
   }
 });
 renderer.domElement.addEventListener('mousemove', (e) => {

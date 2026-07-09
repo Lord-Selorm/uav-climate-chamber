@@ -53,4 +53,5 @@ export const flags = {
   fanSpeedTarget: 3.0,
   fanCurrentSpeed: 3.0,
   pathProgress: 0,
+  lightsOn: true,
 };

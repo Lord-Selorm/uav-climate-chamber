@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makeBox } from './utils.js';
+import { _wallOff, DEPTH, HEIGHT } from './constants.js';
 
 export function buildEnvironment(scene) {
   const envGroup = new THREE.Group();
@@ -177,4 +178,181 @@ export function buildEnvironment(scene) {
   [[-walkHalf, 11.5], [-walkHalf, 5.5], [walkHalf, 11.5], [walkHalf, 5.5]].forEach(([x, z]) => {
     addBeltPost(x, z);
   });
+}
+
+export function buildControlRoom(scene, flags) {
+  const room = new THREE.Group();
+  room.position.set(0, 0, 15);
+  scene.add(room);
+
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x3a3a4a, metalness: 0.4, roughness: 0.6 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.6, roughness: 0.4 });
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x88ccff, metalness: 0, roughness: 0.05,
+    transparent: true, opacity: 0.15, side: THREE.DoubleSide
+  });
+  const interiorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a });
+  const glowMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0xff8800, emissiveIntensity: 0.5 });
+  const screenMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.6 });
+  const frameMatL = new THREE.MeshStandardMaterial({ color: 0x4a4a5a, metalness: 0.7, roughness: 0.3 });
+
+  // Floor
+  const floor = makeBox(5, 0.15, 4, new THREE.MeshStandardMaterial({ color: 0x2a2a3a, metalness: 0.2, roughness: 0.8 }));
+  floor.position.set(0, 0.075, 0);
+  room.add(floor);
+
+  // Back wall
+  const back = makeBox(5, 3, 0.15, wallMat);
+  back.position.set(0, 1.5, -2);
+  room.add(back);
+
+  // Left wall
+  const left = makeBox(0.15, 3, 4, wallMat);
+  left.position.set(-2.5, 1.5, 0);
+  room.add(left);
+
+  // Right wall
+  const right = makeBox(0.15, 3, 4, wallMat);
+  right.position.set(2.5, 1.5, 0);
+  room.add(right);
+
+  // Front wall (facing chamber) — glass panels with frame
+  const frontFrame = makeBox(5, 3, 0.1, frameMatL);
+  frontFrame.position.set(0, 1.5, 2);
+  room.add(frontFrame);
+  const frontGlass = makeBox(4.4, 2.4, 0.04, glassMat);
+  frontGlass.position.set(0, 1.5, 2.07);
+  room.add(frontGlass);
+
+  // Roof
+  const roof = makeBox(5.4, 0.12, 4.4, roofMat);
+  roof.position.set(0, 3, 0.2);
+  room.add(roof);
+
+  // Interior warm glow light
+  const interiorLight = new THREE.PointLight(0xff8844, 1.5, 6);
+  interiorLight.position.set(0, 2.5, 0);
+  room.add(interiorLight);
+
+  // Interior glow plane (ceiling light panel)
+  const lightPanel = makeBox(0.5, 0.02, 0.3, glowMat);
+  lightPanel.position.set(0, 2.9, 0);
+  room.add(lightPanel);
+
+  // Monitor screens inside (visible through glass)
+  for (let i = -1; i <= 1; i += 2) {
+    const screen = makeBox(0.6, 0.4, 0.05, screenMat);
+    screen.position.set(i * 1.2, 1.3, -1.85);
+    screen.rotation.y = 0;
+    room.add(screen);
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.3, 6), wallMat);
+    stand.position.set(i * 1.2, 0.35, -1.85);
+    room.add(stand);
+    const base = makeBox(0.15, 0.03, 0.12, wallMat);
+    base.position.set(i * 1.2, 0.05, -1.85);
+    room.add(base);
+  }
+
+  // Desk
+  const deskMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, metalness: 0.3, roughness: 0.6 });
+  const desk = makeBox(3.5, 0.06, 1.0, deskMat);
+  desk.position.set(0, 0.7, -1.2);
+  room.add(desk);
+
+  // Chairs
+  const chairMat = new THREE.MeshStandardMaterial({ color: 0x222233 });
+  for (let i = -1; i <= 1; i += 2) {
+    const chairBase = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.4, 6), frameMatL);
+    chairBase.position.set(i * 1.0, 0.2, -1.2);
+    room.add(chairBase);
+    const seat = makeBox(0.3, 0.04, 0.3, chairMat);
+    seat.position.set(i * 1.0, 0.42, -1.2);
+    room.add(seat);
+  }
+
+  // ---- Outside Fluorescent Lights on Chamber Exterior ----
+  const housingMat = new THREE.MeshStandardMaterial({ color: 0x556666, metalness: 0.6, roughness: 0.4 });
+  const tubeOnMat = new THREE.MeshStandardMaterial({ color: 0xeeeeff, emissive: 0xaaccff, emissiveIntensity: 1.2 });
+  const tubeOffMat = new THREE.MeshStandardMaterial({ color: 0x666677 });
+
+  function makeFluorescentTube() {
+    const g = new THREE.Group();
+    const housing = makeBox(0.08, 0.04, 1.2, housingMat);
+    g.add(housing);
+    const tube = makeBox(0.04, 0.025, 1.0, tubeOnMat);
+    tube.position.y = -0.025;
+    g.add(tube);
+    return { group: g, tube, tubeOnMat, tubeOffMat };
+  }
+
+  // Front wall (z = DEPTH/2, above glass doors)
+  const frontTubes = [];
+  for (let i = -1; i <= 1; i++) {
+    const ft = makeFluorescentTube();
+    ft.group.position.set(i * 8, HEIGHT - 0.3, DEPTH / 2 + 0.15);
+    ft.group.rotation.x = Math.PI / 2;
+    scene.add(ft.group);
+    frontTubes.push(ft);
+  }
+
+  // Back wall (z = -DEPTH/2)
+  const backTubes = [];
+  for (let i = -1; i <= 1; i++) {
+    const bt = makeFluorescentTube();
+    bt.group.position.set(i * 8, HEIGHT - 0.3, -DEPTH / 2 - 0.15);
+    bt.group.rotation.x = -Math.PI / 2;
+    scene.add(bt.group);
+    backTubes.push(bt);
+  }
+
+  // Left side wall (x = -_wallOff)
+  const leftTubes = [];
+  for (let i = -1; i <= 1; i += 2) {
+    const lt = makeFluorescentTube();
+    lt.group.position.set(-_wallOff - 0.15, HEIGHT - 0.3, i * 3);
+    lt.group.rotation.z = Math.PI / 2;
+    scene.add(lt.group);
+    leftTubes.push(lt);
+  }
+
+  // Right side wall (x = _wallOff)
+  const rightTubes = [];
+  for (let i = -1; i <= 1; i += 2) {
+    const rt = makeFluorescentTube();
+    rt.group.position.set(_wallOff + 0.15, HEIGHT - 0.3, i * 3);
+    rt.group.rotation.z = -Math.PI / 2;
+    scene.add(rt.group);
+    rightTubes.push(rt);
+  }
+
+  const allTubes = [...frontTubes, ...backTubes, ...leftTubes, ...rightTubes];
+
+  // ---- Main Switch Box on Control Room Wall ----
+  const switchBoxMat = new THREE.MeshStandardMaterial({ color: 0x333344, metalness: 0.5, roughness: 0.4 });
+  const swOnMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 0.6 });
+  const swOffMat = new THREE.MeshStandardMaterial({ color: 0x442200 });
+  const labelMat = new THREE.MeshStandardMaterial({ color: 0x888888, emissive: 0x888888, emissiveIntensity: 0.1 });
+
+  function makeSwitch() {
+    const g = new THREE.Group();
+    const box = makeBox(0.25, 0.35, 0.1, switchBoxMat);
+    g.add(box);
+    const toggle = makeBox(0.015, 0.07, 0.015, new THREE.MeshStandardMaterial({ color: 0xcccccc }));
+    toggle.position.set(0, 0.05, 0.07);
+    g.add(toggle);
+    const ind = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), swOnMat);
+    ind.position.set(0, 0.18, 0.07);
+    g.add(ind);
+    const lbl = makeBox(0.2, 0.03, 0.015, labelMat);
+    lbl.position.set(0, -0.1, 0.07);
+    g.add(lbl);
+    return { group: g, toggle, ind, swOnMat, swOffMat };
+  }
+
+  const mainSwitch = makeSwitch();
+  mainSwitch.group.position.set(2.6, 2.0, 0.4);
+  mainSwitch.group.rotation.y = -Math.PI / 2;
+  room.add(mainSwitch.group);
+
+  return { allTubes, mainSwitch };
 }
