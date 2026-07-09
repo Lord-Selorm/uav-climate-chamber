@@ -412,25 +412,21 @@ export function buildControlRoom(scene, flags) {
     const glow = new THREE.PointLight(0x00ff44, 0.5, 2);
     glow.position.set(0, 0.3, 0.15);
     g.add(glow);
-    g.position.set(0, 1.8, 0);
+    // internal offset set in outer position
     return { group: g, lever, ind, glow, swOnMat, swOffMat };
   }
 
   function makeSwitchPole() {
     const g = new THREE.Group();
-    // Concrete base
     const base = makeBox(0.6, 0.1, 0.6, baseMat);
     base.position.y = 0.05;
     g.add(base);
-    // Metal pole
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.8, 10), poleMat);
     pole.position.y = 1.5;
     g.add(pole);
-    // Sign plate at top
     const sign = makeBox(1.0, 0.25, 0.04, signMat);
     sign.position.set(0, 2.85, 0.15);
     g.add(sign);
-    // Beacon light on top
     const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), beaconMat);
     beacon.position.set(0, 3.1, 0);
     g.add(beacon);
@@ -439,10 +435,10 @@ export function buildControlRoom(scene, flags) {
 
   const mainSwitch = makeSwitch();
   const poleGroup = makeSwitchPole();
-  // Place switch on a tall pole in front of the chamber, clearly visible
-  poleGroup.position.set(0, 0, DEPTH / 2 + 2.5);
+  // Switch on a tall pole in front of the chamber, clearly visible
+  poleGroup.position.set(4, 0, DEPTH / 2 + 2.0);
   scene.add(poleGroup);
-  mainSwitch.group.position.set(0, 0.1, DEPTH / 2 + 2.65);
+  mainSwitch.group.position.set(4, 1.9, DEPTH / 2 + 2.15);
   scene.add(mainSwitch.group);
 
   return { allTubes, mainSwitch };
